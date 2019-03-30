@@ -1,24 +1,28 @@
 import socket
 import os, imp, struct, threading, csv
 from bluetooth import *
+import datetime
 import bluetooth, signal, sys
 from enum import Enum
+import time
+
+DATA_PATH = "test.csv"
+COLLECTION_TIME = 2
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
+print("Base path=" + dir_path)
 
 HOST = '127.0.0.1'  # The server's hostname or IP address
 PORT = 65432        # The port used by the server
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-
 imuMsgPath = dir_path+ "/release/imumsg_pb2.py"
-
+print(imuMsgPath)
 imuMsg = imp.load_source("imumsg_pb2",imuMsgPath)
 
 #Class defines mode of data transfer
 class dataTransferMode(Enum):
-
 	TCP = 1
 	BLUETOOTH = 2
-
 
 class msgServer(threading.Thread):
 	connected = False
@@ -27,6 +31,7 @@ class msgServer(threading.Thread):
 	_maxClients = 1
 	_numClients = 0
 	_serverRunning = True
+	
 	def __init__(self, dataTransferMode):
 		threading.Thread.__init__(self)
 
@@ -51,9 +56,7 @@ class msgServer(threading.Thread):
 			self.serversocket.bind((HOST, PORT))
 			print("Succesfully connected to a client")
 
-
-			self.controlLoop()
-
+			#self.controlLoop()
 
 			#while True:
 			
@@ -62,11 +65,7 @@ class msgServer(threading.Thread):
 		_thread = IMUMsgThread(self.clientsocket,self)
 		_thread.start()		
 
-		
-	
-	def getLeftIMUData(self):
-		return self._HC05LeftDataThread.getLatestStoredIMUData()
-	
+
 
 	@property
 	def numClients(self):
@@ -82,24 +81,53 @@ class msgServer(threading.Thread):
 			
 			if self._numClients < self._maxClients:
 
-				self.connectToHC05Left()
+				sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+				sock.connect(("98:D3:51:FD:AD:F5",1))
+				print("Connected to Socket")
+
+				self._numClients = self._numClients + 1
+				_thread = IMUMsgThread(sock,self)
+				_thread.start()
+				time.sleep(COLLECTION_TIME+5)
+				_thread.shutDown()
+				print("Closing socket...\n")
+				time.sleep(5)
+
+				still_connected = True
+				while(still_connected == True):
+					sock.close()
+					time.sleep(5)
+
+					try:
+						sock.getpeername()
+						still_connected = True
+					except:
+						still_connected = False
+
+				print("Socket Closed")
+				self.shutDown()
+				return True
+
+
 
 	def shutDown(self):
+
 		self._serverRunning = False
 		sys.exit(0)
+
 	def getIMUMsg(self):
 	 
 		dataSizeArray = self.receive(4)
 
 		dataSize = struct.unpack("<L", dataSizeArray)[0]
-		print(dataSize)
+		#print(dataSize)
 
 		data = self.receive(dataSize)		
 		#Get incoming data.
 		_imuMsg = imuMsg.IMUInfo()				
 		_imuMsg.ParseFromString(data)
 		print("Value: %f" %_imuMsg.acc_x)
-		print("Msg from sensor " + _imuMsg.sensorID)
+		#print("Msg from sensor " + _imuMsg.sensorID)
 
 		
 
@@ -112,74 +140,80 @@ class msgServer(threading.Thread):
 			bytes_recd = bytes_recd + len(chunk)
 		return ''.join(chunks)	
 
-	def connectToHC05Left(self):
-		sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-		sock.connect(("98:D3:51:FD:AD:F5",1))
-		print("Connected to Socket")
-		self._numClients = self._numClients + 1
-		#~ while 1:
-			#~ s = sock.recv(1)
-			#~ print(s)
-		self._HC05LeftDataThread = IMUMsgThread(sock,self)
-		self._HC05LeftDataThread.start()			
-		#~ input("Press enter to close")
-		#~ sock.close()
 class IMUMsgThread(threading.Thread):
 	#Thread is running
 	_running = True
-	#Whether to store incoming data in a CSV file.
-	_recordData=False
-
+	msgsRecieved=0
 	def __init__(self, clientSocket, parentServer):
 		threading.Thread.__init__(self)
 		self.clientsocket = clientSocket
 		self._parentServer = parentServer
+		#self.clientsocket.setblocking(0)
 		
 
 	def run(self):
-		self.csvFile = open(dir_path+"/data.csv", 'wb')
+		self.csvFile = open(dir_path+"/imu_data/"+DATA_PATH, 'wb')
 		self.CSVData = csv.writer(self.csvFile)		
-		while self._running: 
+
+		startTime = datetime.datetime.now()
+		currentTime = datetime.datetime.now()
+
+		while (currentTime-startTime).seconds < COLLECTION_TIME:
 			try:
-				self._currentIMUData = self.getIMUMsg()
+				self.getIMUMsg()
+				self.msgsRecieved = self.msgsRecieved + 1
+				print("Message number %i" %self.msgsRecieved )
 			except:
 				print("ERROR getting message")
 				pass				
-			
 
-	def getLatestStoredIMUData(self):
+			currentTime = datetime.datetime.now()
 
-		return self._currentIMUData
+			#time.sleep(0.050)
+			#print("Seconds passed = " + str((currentTime-startTime).seconds))
+		self.csvFile.close()
+
+
 
 	def getIMUMsg(self):
 	 #
+
 		dataSizeArray = self.receive(4)
 		
-
+		# dataSizeArray = dataSizeArray[0:1]
 		dataSize = struct.unpack("<L", dataSizeArray)[0]
-		print(dataSize)
+		#print(dataSize)
+	 	if(dataSize < 100):
 
-		data = self.receive(dataSize)	
-		
+			data = self.receive(dataSize)
 
-		#Get incoming data.
-		_imuMsg = imuMsg.IMUInfo()				
-		_imuMsg.ParseFromString(data)
-		print("Value: %f" %_imuMsg.acc_x)
-		print("Data from sensor "+ _imuMsg.sensorID)
-		if self._recordData:
-			self.CSVData.writerow([_imuMsg.acc_x])
-		return _imuMsg
+			# Get incoming data.
+			_imuMsg = imuMsg.IMUInfo()
+			_imuMsg.ParseFromString(data)
+
+			# Do things in real-time HERE ...
+
+			# Log data to a CSV
+			self.CSVData.writerow([datetime.datetime.now().strftime("%H:%M:%S.%f"), _imuMsg.acc_x,_imuMsg.acc_y,_imuMsg.acc_z,_imuMsg.angular_x,_imuMsg.angular_y,_imuMsg.angular_z])
+
+			return _imuMsg
+
+		else:
+			print("Invalid Size of %i \n" % dataSize)
+	 		return False
 		
 
 	###
 	def receive(self, MSGLEN):
+		# data = self.clientsocket.recv(MSGLEN)
+		# return data
 		chunks = []
 		bytes_recd = 0
 		while bytes_recd < MSGLEN:
-			print("Waiting for msg")
+			# print("Waiting for msg")
 			chunk = self.clientsocket.recv(1)
-			print(chunk)
+			# self.clientsocket.readsock(1)
+			# print str(chunk)
 			if chunk == '':
 
 				#raise RuntimeError("socket connection broken")
@@ -203,21 +237,45 @@ def connect():
 	sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
 	sock.connect(("98:D3:51:FD:AD:F5",1))
 	print("Connected to Socket")
+	bytes_recd = 0
+	MSGLEN =1
+	while bytes_recd < MSGLEN:
+		#chunk = sock.recv(1)
+		sock.send("HelloWorld")
+		#print str(chunk)
+		bytes_recd = bytes_recd + 1
 	input("Press enter to close")
+
 	sock.close()
 
-def findBT():
 
-	targetname
-# if __name__=="__main__":
+
+	# s = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
+
+	# target_name = "HC-05-LEFT"
+	# target_address = None
+
+	# nearby_devices = bluetooth.discover_devices()
+
+	# for bdaddr in nearby_devices:
+	# 	name = bluetooth.lookup_name( bdaddr )
+	# 	print(name)
+	# 	if target_name == name:
+	# 		target_address = bdaddr
+	# 		break
+
+	# if target_address is not None:
+	# 	print "found target bluetooth device with address ", target_address
+
+
+	# else:
+	# 	print "could not find target bluetooth device nearby"
+
+	# sock.close()
+
+if __name__=="__main__":
 	
-# 	print("Binding to port")
-# 	#~ connect()
-# 	_msgServerThread = msgServer(dataTransferMode.BLUETOOTH)
-# 	_msgServerThread.start()
+	print("Binding to port")
+	_msgServerThread = msgServer(dataTransferMode.BLUETOOTH)
+	_msgServerThread.start()
 
-	#signal.signal(signal.SIGINT, _msgServerThread.shutDown)
-	#signal.pause()
-	# while True:
-	# 	if _msgServer.connected:
-	# 		_msgServer.getIMUMsg()

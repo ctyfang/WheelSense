@@ -1,16 +1,19 @@
 from USonicJSNapi import USSensor
 from dataTransferServer import *
-
-
+from mpu6050 import mpu6050
+from IMUThread import IMUSensor
+from OrientationThread import OrientationSensor
 
 
 #This class initiates all sensor acquisition software threads, and polls them for data at 
 #a specified rate.
+
+	
 class mainSensorAcquistion():
 
 	def __init__(self):
-		self.initWheelSensors()
-		self.initUltraSonicSensors()
+		#self.initWheelSensors()
+		#self.initUltraSonicSensors()
 		self.initOrientationSensor()
 		self.initIMUSensor()
 		# self.initCameraSensor()
@@ -25,18 +28,16 @@ class mainSensorAcquistion():
 		self.USonicThreadForward = USSensor()
 		self.USonicThreadForward.start()
 
-		self.USonicThreadDown = USSensor()
-		self.USonicThreadDown.start()
+		#self.USonicThreadDown = USSensor()
+		#self.USonicThreadDown.start()
 
-	# TODO Get this working
-	# https: // github.com / MomsFriendlyRobotCompany / mpu9250 / blob / master / mpu9250 / mpu9250.py
 	def initOrientationSensor(self):
-		# write this
-
-	# TODO Get this working
-	# https://pypi.org/project/mpu6050-raspberrypi/
+		self.OrientationThread = OrientationSensor()
+		self.OrientationThread.start()
+		
 	def initIMUSensor(self):
-		# write this
+		self.IMUThread = IMUSensor()
+		self.IMUThread.start()
 
 	# TODO Check if this works
 	def initWheelSensors(self):
