@@ -6,8 +6,7 @@ import time
 import datetime
 
 def timediff(end, start):
-	delta = end-start
-	return (delta.microseconds)*1000000
+	return ((end-start).microseconds)*1000000
 	
 class OrientationSensor(threading.Thread):
 
@@ -15,21 +14,11 @@ class OrientationSensor(threading.Thread):
 		threading.Thread.__init__(self)
 		self.Fusion = Fusion(timediff)
 		self.MPU = mpu9250()
-		
-		mag_data = self.MPU.mag
 	
 	def run(self):
 		while(True):
-			accel_data = self.MPU.accel
-			gyro_data = self.MPU.gyro
-			mag_data = self.MPU.mag
-			self.Fusion.update(accel_data, gyro_data, mag_data, datetime.datetime.now())
+			print(time.time)
+			self.Fusion.update(self.MPU.accel, self.MPU.gyro, self.MPU.mag, datetime.datetime.now())
 			#self.Fusion.heading/pitch/roll for the data
+			print(time.time)
 
-
-
-# if __name__ == '__main__':
-
-#     #
-# 	_thread = USSensor()
-# 	_thread.start()     

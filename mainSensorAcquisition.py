@@ -13,7 +13,7 @@ import sched,time
 class mainSensorAcquisition():
 
 	def __init__(self):
-		self.initWheelSensors()
+		#self.initWheelSensors()
 		self.initUltraSonicSensors()
 		self.initOrientationSensor()
 		#self.initIMUSensor()

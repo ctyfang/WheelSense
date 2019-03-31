@@ -97,12 +97,9 @@ class WheelIMUThread(threading.Thread):
 	def getIMUMsg(self):
 	 
 		dataSizeArray = self.receive(4)
-
 		dataSize = struct.unpack("<L", dataSizeArray)[0]
-		#print(dataSize)
 
-		data = self.receive(dataSize)		
-		#Get incoming data.
+		data = self.receive(dataSize)
 		_imuMsg = imuMsg.IMUInfo()				
 		_imuMsg.ParseFromString(data)
 		print("Value: %f" %_imuMsg.acc_x)
