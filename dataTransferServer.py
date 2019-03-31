@@ -88,27 +88,6 @@ class msgServer(threading.Thread):
 				self._numClients = self._numClients + 1
 				_thread = IMUMsgThread(sock,self)
 				_thread.start()
-				time.sleep(COLLECTION_TIME+5)
-				_thread.shutDown()
-				print("Closing socket...\n")
-				time.sleep(5)
-
-				still_connected = True
-				while(still_connected == True):
-					sock.close()
-					time.sleep(5)
-
-					try:
-						sock.getpeername()
-						still_connected = True
-					except:
-						still_connected = False
-
-				print("Socket Closed")
-				self.shutDown()
-				return True
-
-
 
 	def shutDown(self):
 
@@ -158,7 +137,7 @@ class IMUMsgThread(threading.Thread):
 		startTime = datetime.datetime.now()
 		currentTime = datetime.datetime.now()
 
-		while (currentTime-startTime).seconds < COLLECTION_TIME:
+		while (True):
 			try:
 				self.getIMUMsg()
 				self.msgsRecieved = self.msgsRecieved + 1
@@ -171,7 +150,7 @@ class IMUMsgThread(threading.Thread):
 
 			#time.sleep(0.050)
 			#print("Seconds passed = " + str((currentTime-startTime).seconds))
-		self.csvFile.close()
+		#self.csvFile.close()
 
 
 
@@ -194,7 +173,7 @@ class IMUMsgThread(threading.Thread):
 			# Do things in real-time HERE ...
 
 			# Log data to a CSV
-			self.CSVData.writerow([datetime.datetime.now().strftime("%H:%M:%S.%f"), _imuMsg.acc_x,_imuMsg.acc_y,_imuMsg.acc_z,_imuMsg.angular_x,_imuMsg.angular_y,_imuMsg.angular_z])
+			#self.CSVData.writerow([datetime.datetime.now().strftime("%H:%M:%S.%f"), _imuMsg.acc_x,_imuMsg.acc_y,_imuMsg.acc_z,_imuMsg.angular_x,_imuMsg.angular_y,_imuMsg.angular_z])
 
 			return _imuMsg
 

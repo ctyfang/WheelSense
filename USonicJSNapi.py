@@ -4,26 +4,26 @@ import time, threading
  
 
 class USSensor(threading.Thread):
-	TRIG = 18                                  #Associate pin 15 to TRIG
-	ECHO = 24                                  #Associate pin 14 to Echo
+	TRIG = 27                                  #Associate pin 15 to TRIG
+	ECHO = 17                                  #Associate pin 14 to Echo
 	isInit = False
-	def __init__(self):
+	def __init__(self, TRIG_PIN, ECHO_PIN):
 		threading.Thread.__init__(self)
 
 		#GPIO Mode (BOARD / BCM)
 		GPIO.setmode(GPIO.BCM)
 
 		print "Distance measurement in progress"
-		TRIG = self.TRIG
-		ECHO = self.ECHO
-		GPIO.setup(TRIG,GPIO.OUT)                  #Set pin as GPIO out
-		GPIO.setup(ECHO,GPIO.IN)                   #Set pin as GPIO in
+		self.TRIG = TRIG_PIN
+		self.ECHO = ECHO_PIN
+		GPIO.setup(self.TRIG,GPIO.OUT)                  #Set pin as GPIO out
+		GPIO.setup(self.ECHO,GPIO.IN)                   #Set pin as GPIO in
 
 	
 	def run(self):
 		self.initialize()
-		# while True:
-		# 	self.getDistance()
+		while True:
+		 	self.getDistance()
 	
 	def initialize(self):
 
@@ -51,10 +51,10 @@ class USSensor(threading.Thread):
 		distance = pulse_duration * 17150        #Calculate distance
 		distance = round(distance, 2)            #Round to two decimal points
 
-		if distance > 20 and distance < 400:     #Is distance within range
-			print "Distance:",distance - 0.5,"cm"  #Distance with calibration
-		else:
-			print "Out Of Range"                   #display out of range
+		#if distance > 20 and distance < 800:     #Is distance within range
+	#		print "Distance:",distance - 0.5,"cm"  #Distance with calibration
+	#	else:
+	#		print "Out Of Range"                   #display out of range
  
 		return distance
 

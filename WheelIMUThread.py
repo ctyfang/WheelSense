@@ -6,154 +6,255 @@ import bluetooth, signal, sys
 from enum import Enum
 import time
 
+DATA_PATH = "test.csv"
+COLLECTION_TIME = 2
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 print("Base path=" + dir_path)
 
-imuMsgPath = dir_path + "\\release\\imumsg_pb2.py"
-imuMsg = imp.load_source("imumsg_pb2", imuMsgPath)
+HOST = '127.0.0.1'  # The server's hostname or IP address
+PORT = 65432        # The port used by the server
+
+imuMsgPath = dir_path+ "/release/imumsg_pb2.py"
+print(imuMsgPath)
+imuMsg = imp.load_source("imumsg_pb2",imuMsgPath)
+
+#Class defines mode of data transfer
+class dataTransferMode(Enum):
+	TCP = 1
+	BLUETOOTH = 2
 
 class WheelIMUThread(threading.Thread):
-    connected = False
-    # If true choose blueTooth connection
-    blueTooth = False
-    _maxClients = 1
-    _numClients = 0
-    _serverRunning = True
+	connected = False
+	#If true choose blueTooth connection
+	blueTooth = False
+	_maxClients = 1
+	_numClients = 0
+	_serverRunning = True
+	
+	def __init__(self):
+		threading.Thread.__init__(self)
 
-    def __init__(self):
-        threading.Thread.__init__(self)
+		print("Binding to port")
+		self.transferMode = dataTransferMode(2)
 
-    def startServerBlueTooth(self):
+	def run(self):
+		#self.startServer()
+		if(self.transferMode == dataTransferMode.TCP):
+			self.startTCPServer()
+		elif(self.transferMode == dataTransferMode.BLUETOOTH):
+			self.startServerBlueTooth()
 
-        while self._serverRunning:
+	
+	def startTCPServer(self):
+			print("Binding to port")
+			#create an INET, STREAMing socket
+			self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			#bind the socket to a public host,
+			# and a well-known port
+			print("Binding to port")
+			self.serversocket.bind((HOST, PORT))
+			print("Succesfully connected to a client")
 
-            if self._numClients < self._maxClients:
+			#self.controlLoop()
 
-                self.sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-                self.sock.connect(("98:D3:51:FD:AD:F5", 1))
-                print("Connected to Socket")
-
-                self._numClients = self._numClients + 1
-                _thread = IMUMsgThread(self.sock, self)
-                _thread.start()
-
-    def run(self):
-        self.startServerBlueTooth()
-
-    # Ran after connection is made
-    def controlLoop(self):
-        _thread = IMUMsgThread(self.clientsocket, self)
-        _thread.start()
-
-    @property
-    def numClients(self):
-        return self._numClients
-
-    def removeClient(self):
-        ##For now just lower number clients connected
-        self._numClients = self._numClients - 1
+			#while True:
+			
+	#Ran after connection is made
+	def controlLoop(self):
+		_thread = IMUMsgThread(self.clientsocket,self)
+		_thread.start()		
 
 
-    def shutDown(self):
-        self.sock.close()
-        self._serverRunning = False
-        sys.exit(0)
 
-    def receive(self, MSGLEN):
-        chunks = []
-        bytes_recd = 0
-        while bytes_recd < MSGLEN:
-            chunk = self.clientsocket.recv(1)
-            chunks.append(chunk)
-            bytes_recd = bytes_recd + len(chunk)
-        return ''.join(chunks)
+	@property
+	def numClients(self):
+		return self._numClients
 
+	def removeClient(self):
+		##For now just lower number clients connected
+		self._numClients = self._numClients - 1
+	
+	def startServerBlueTooth(self):
+
+		while self._serverRunning:
+			
+			if self._numClients < self._maxClients:
+
+				sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+				sock.connect(("98:D3:51:FD:AD:F5",1))
+				print("Connected to Socket")
+
+				self._numClients = self._numClients + 1
+				_thread = IMUMsgThread(sock,self)
+				_thread.start()
+
+	def shutDown(self):
+
+		self._serverRunning = False
+		sys.exit(0)
+
+	def getIMUMsg(self):
+	 
+		dataSizeArray = self.receive(4)
+
+		dataSize = struct.unpack("<L", dataSizeArray)[0]
+		#print(dataSize)
+
+		data = self.receive(dataSize)		
+		#Get incoming data.
+		_imuMsg = imuMsg.IMUInfo()				
+		_imuMsg.ParseFromString(data)
+		print("Value: %f" %_imuMsg.acc_x)
+		#print("Msg from sensor " + _imuMsg.sensorID)
+
+		
+
+	def receive(self, MSGLEN):
+		chunks = []
+		bytes_recd = 0
+		while bytes_recd < MSGLEN:
+			chunk = self.clientsocket.recv(1)
+			chunks.append(chunk)
+			bytes_recd = bytes_recd + len(chunk)
+		return ''.join(chunks)	
 
 class IMUMsgThread(threading.Thread):
-    # Thread is running
-    _running = True
-    msgsRecieved = 0
+	#Thread is running
+	_running = True
+	msgsRecieved=0
+	def __init__(self, clientSocket, parentServer):
+		threading.Thread.__init__(self)
+		self.clientsocket = clientSocket
+		self._parentServer = parentServer
+		#self.clientsocket.setblocking(0)
+		
 
-    def __init__(self, clientSocket, parentServer):
-        threading.Thread.__init__(self)
-        self.clientsocket = clientSocket
-        self._parentServer = parentServer
+	def run(self):
+		self.csvFile = open(dir_path+"/imu_data/"+DATA_PATH, 'wb')
+		self.CSVData = csv.writer(self.csvFile)		
 
-    # self.clientsocket.setblocking(0)
+		startTime = datetime.datetime.now()
+		currentTime = datetime.datetime.now()
 
+		while (True):
+			try:
+				self.data = self.getIMUMsg()
+				self.msgsRecieved = self.msgsRecieved + 1
+				#print("Message number %i" %self.msgsRecieved )
+			except:
+				#print("ERROR getting message")
+				pass				
 
-    def run(self):
-        #self.csvFile = open(dir_path + "\\imu_data\\" + DATA_PATH, 'wb')
-        #self.CSVData = csv.writer(self.csvFile)
+			currentTime = datetime.datetime.now()
 
-        while True:
-            try:
-                self.getIMUMsg()
-                self.msgsRecieved = self.msgsRecieved + 1
-                print("Success! Received message " % self.msgsRecieved)
-            except:
-                print("ERROR getting message")
-                pass
-
-        # time.sleep(0.050)
-        #self.csvFile.close()
-
-    def getIMUMsg(self):
-        dataSizeArray = self.receive(4)
-
-        # dataSizeArray = dataSizeArray[0:1]
-        dataSize = struct.unpack("<L", dataSizeArray)[0]
-        if (dataSize < 100):
-
-            data = self.receive(dataSize)
-
-            # Get incoming data.
-            _imuMsg = imuMsg.IMUInfo()
-            _imuMsg.ParseFromString(data)
-
-            # Do things in real-time HERE ...
-
-            # Log data to a CSV
-            #self.CSVData.writerow(
-            #    [datetime.datetime.now().strftime("%H:%M:%S.%f"), _imuMsg.acc_x, _imuMsg.acc_y, _imuMsg.acc_z,
-            #     _imuMsg.angular_x, _imuMsg.angular_y, _imuMsg.angular_z])
-
-            return _imuMsg
-
-        else:
-            print("Invalid Size of %i \n" % dataSize)
-            return False
-
-    ###
-    def receive(self, MSGLEN):
-        # data = self.clientsocket.recv(MSGLEN)
-        # return data
-        chunks = []
-        bytes_recd = 0
-        while bytes_recd < MSGLEN:
-            # print("Waiting for msg")
-            chunk = self.clientsocket.recv(1)
-            # self.clientsocket.readsock(1)
-            # print str(chunk)
-            if chunk == '':
-                # raise RuntimeError("socket connection broken")
-                print("socket connection broken shutting down this thread")
-                self.shutDown()
-                return 0
-
-            chunks.append(chunk)
-            bytes_recd = bytes_recd + len(chunk)
-        return ''.join(chunks)
-
-    def shutDown(self):
-        self.clientsocket.close()
-        #self.csvFile.close()
-        self._running = False
-        self._parentServer.removeClient()
+			#time.sleep(0.050)
+			#print("Seconds passed = " + str((currentTime-startTime).seconds))
+		#self.csvFile.close()
 
 
 
-if __name__ == "__main__":
-    _msgServerThread = WheelIMUThread()
-    _msgServerThread.start()
+	def getIMUMsg(self):
+	 #
+
+		dataSizeArray = self.receive(4)
+		
+		# dataSizeArray = dataSizeArray[0:1]
+		dataSize = struct.unpack("<L", dataSizeArray)[0]
+		#print(dataSize)
+	 	if(dataSize < 100):
+
+			data = self.receive(dataSize)
+
+			# Get incoming data.
+			_imuMsg = imuMsg.IMUInfo()
+			_imuMsg.ParseFromString(data)
+
+			# Do things in real-time HERE ...
+
+			# Log data to a CSV
+			#self.CSVData.writerow([datetime.datetime.now().strftime("%H:%M:%S.%f"), _imuMsg.acc_x,_imuMsg.acc_y,_imuMsg.acc_z,_imuMsg.angular_x,_imuMsg.angular_y,_imuMsg.angular_z])
+
+			return _imuMsg
+
+		else:
+			print("Invalid Size of %i \n" % dataSize)
+	 		return False
+		
+
+	###
+	def receive(self, MSGLEN):
+		# data = self.clientsocket.recv(MSGLEN)
+		# return data
+		chunks = []
+		bytes_recd = 0
+		while bytes_recd < MSGLEN:
+			# print("Waiting for msg")
+			chunk = self.clientsocket.recv(1)
+			# self.clientsocket.readsock(1)
+			# print str(chunk)
+			if chunk == '':
+
+				#raise RuntimeError("socket connection broken")
+				print("socket connection broken shutting down this thread")
+				self.shutDown()
+				return 0
+
+
+			chunks.append(chunk)
+			bytes_recd = bytes_recd + len(chunk)
+		return ''.join(chunks)	
+
+	def shutDown(self):
+		self.clientsocket.close()
+		self.csvFile.close()
+		self._running = False
+		self._parentServer.removeClient()
+
+
+def connect():
+	sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+	sock.connect(("98:D3:51:FD:AD:F5",1))
+	print("Connected to Socket")
+	bytes_recd = 0
+	MSGLEN =1
+	while bytes_recd < MSGLEN:
+		#chunk = sock.recv(1)
+		sock.send("HelloWorld")
+		#print str(chunk)
+		bytes_recd = bytes_recd + 1
+	input("Press enter to close")
+
+	sock.close()
+
+
+
+	# s = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
+
+	# target_name = "HC-05-LEFT"
+	# target_address = None
+
+	# nearby_devices = bluetooth.discover_devices()
+
+	# for bdaddr in nearby_devices:
+	# 	name = bluetooth.lookup_name( bdaddr )
+	# 	print(name)
+	# 	if target_name == name:
+	# 		target_address = bdaddr
+	# 		break
+
+	# if target_address is not None:
+	# 	print "found target bluetooth device with address ", target_address
+
+
+	# else:
+	# 	print "could not find target bluetooth device nearby"
+
+	# sock.close()
+
+#if __name__=="__main__":
+#	
+#	print("Binding to port")
+#	_msgServerThread = msgServer(dataTransferMode.BLUETOOTH)
+#	_msgServerThread.start()
 
