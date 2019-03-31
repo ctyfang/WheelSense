@@ -44,8 +44,8 @@ class mainSensorAcquisition():
 	# TODO Check if this works
 	def initWheelSensors(self):
 		# Connect to left
-		self._leftWheelThread = WheelIMUThread()
-		self._leftWheelThread.start()
+		self.leftWheelThread = WheelIMUThread()
+		self.leftWheelThread.start()
 
 		# Connect to right - TODO Change UUID for second wheel module
 
@@ -55,10 +55,22 @@ class mainSensorAcquisition():
 			print(self.value)
 			self.value += 1
 			# Create packet
+			dataPacket = {}
+			
+			print(time.time())
+			accel = self.OrientationThread.MPU.accel
+			gyro = self.OrientationThread.MPU.gyro
+			yaw = self.OrientationThread.Fusion.heading
+			pitch = self.OrientationThread.Fusion.pitch
+			roll = self.OrientationThread.Fusion.roll
+			front_dist = self.USonicThreadForward.distance
+			#left_wheel = self.leftWheelThread.data
+			
 			#self.testSched.enter(0.01, 1, self.poll, ())
 			#self.testSched.run()
 			# Format into protobuf
-			time.sleep(0.004000)
+			print(time.time())
+			time.sleep(2)
 		# Transmit to laptop
 		
 	

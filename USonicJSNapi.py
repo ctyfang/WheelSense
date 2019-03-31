@@ -6,6 +6,7 @@ import time, threading
 class USSensor(threading.Thread):
 	TRIG = 27                                  #Associate pin 15 to TRIG
 	ECHO = 17                                  #Associate pin 14 to Echo
+	distance = 0
 	isInit = False
 	def __init__(self, TRIG_PIN, ECHO_PIN):
 		threading.Thread.__init__(self)
@@ -49,12 +50,14 @@ class USSensor(threading.Thread):
 		pulse_duration = pulse_end - pulse_start #pulse duration to a variable
 
 		distance = pulse_duration * 17150        #Calculate distance
-		distance = round(distance, 2)            #Round to two decimal points
+		distance = round(self.distance, 2)            #Round to two decimal points
 
-		#if distance > 20 and distance < 800:     #Is distance within range
-	#		print "Distance:",distance - 0.5,"cm"  #Distance with calibration
-	#	else:
-	#		print "Out Of Range"                   #display out of range
+		if distance > 20 and distance < 800:     #Is distance within range
+			#print "Distance:",distance - 0.5,"cm"  #Distance with calibration
+			self.distance = distance
+		else:
+			#print "Out Of Range"                   #display out of range
+			pass
  
 		return distance
 

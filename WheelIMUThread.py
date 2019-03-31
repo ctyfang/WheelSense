@@ -12,11 +12,7 @@ COLLECTION_TIME = 2
 dir_path = os.path.dirname(os.path.realpath(__file__))
 print("Base path=" + dir_path)
 
-HOST = '127.0.0.1'  # The server's hostname or IP address
-PORT = 65432        # The port used by the server
-
 imuMsgPath = dir_path+ "/release/imumsg_pb2.py"
-print(imuMsgPath)
 imuMsg = imp.load_source("imumsg_pb2",imuMsgPath)
 
 #Class defines mode of data transfer
@@ -66,7 +62,6 @@ class WheelIMUThread(threading.Thread):
 		_thread.start()		
 
 
-
 	@property
 	def numClients(self):
 		return self._numClients
@@ -97,12 +92,11 @@ class WheelIMUThread(threading.Thread):
 	def getIMUMsg(self):
 	 
 		dataSizeArray = self.receive(4)
-		dataSize = struct.unpack("<L", dataSizeArray)[0]
-
-		data = self.receive(dataSize)
-		_imuMsg = imuMsg.IMUInfo()				
+		dataSize = struct.unpack("<L", dataSizeArray)[0]	
+	
 		_imuMsg.ParseFromString(data)
-		print("Value: %f" %_imuMsg.acc_x)
+		self.data = _imuMsg	
+		#print("Value: %f" %_imuMsg.acc_x)
 		#print("Msg from sensor " + _imuMsg.sensorID)
 
 		
@@ -128,11 +122,6 @@ class IMUMsgThread(threading.Thread):
 		
 
 	def run(self):
-		self.csvFile = open(dir_path+"/imu_data/"+DATA_PATH, 'wb')
-		self.CSVData = csv.writer(self.csvFile)		
-
-		startTime = datetime.datetime.now()
-		currentTime = datetime.datetime.now()
 
 		while (True):
 			try:
@@ -143,7 +132,6 @@ class IMUMsgThread(threading.Thread):
 				#print("ERROR getting message")
 				pass				
 
-			currentTime = datetime.datetime.now()
 
 			#time.sleep(0.050)
 			#print("Seconds passed = " + str((currentTime-startTime).seconds))
