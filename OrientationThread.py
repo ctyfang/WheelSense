@@ -17,8 +17,8 @@ class OrientationSensor(threading.Thread):
 	
 	def run(self):
 		while(True):
-			print(time.time())
+			#print(time.time())
 			self.Fusion.update(self.MPU.accel, self.MPU.gyro, self.MPU.mag, datetime.datetime.now())
 			#self.Fusion.heading/pitch/roll for the data
-			print(time.time())
+			#print(time.time())
 			time.sleep(0.01)

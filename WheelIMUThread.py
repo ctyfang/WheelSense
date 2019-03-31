@@ -28,6 +28,7 @@ class WheelIMUThread(threading.Thread):
 	_maxClients = 1
 	_numClients = 0
 	_serverRunning = True
+	data = []
 	
 	def __init__(self):
 		threading.Thread.__init__(self)
@@ -113,8 +114,8 @@ class IMUMsgThread(threading.Thread):
 	def run(self):
 
 		while (True):
-			print("Pre-fetch")
-			print(time.time())
+			#print("Pre-fetch")
+			#print(time.time())
 			try:
 				self.data = self.getIMUMsg()
 				self.msgsRecieved = self.msgsRecieved + 1
@@ -122,8 +123,8 @@ class IMUMsgThread(threading.Thread):
 			except:
 				#print("ERROR getting message")
 				pass				
-			print("Post-fetch")
-			print(time.time())
+			#print("Post-fetch")
+			#print(time.time())
 
 			#time.sleep(0.050)
 			#print("Seconds passed = " + str((currentTime-startTime).seconds))
@@ -142,14 +143,14 @@ class IMUMsgThread(threading.Thread):
 			_imuMsg = imuMsg.IMUInfo()
 			_imuMsg.ParseFromString(data)
 			# Do things in real-time HERE ...
-
+			self._parentServer.data = _imuMsg
 			# Log data to a CSV
 			#self.CSVData.writerow([datetime.datetime.now().strftime("%H:%M:%S.%f"), _imuMsg.acc_x,_imuMsg.acc_y,_imuMsg.acc_z,_imuMsg.angular_x,_imuMsg.angular_y,_imuMsg.angular_z])
 
 			return _imuMsg
 
 		else:
-			print("Invalid Size of %i \n" % dataSize)
+			#print("Invalid Size of %i \n" % dataSize)
 	 		return False
 		
 

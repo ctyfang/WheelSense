@@ -14,16 +14,14 @@ class mainSensorAcquisition():
 
 	def __init__(self):
 		self.initWheelSensors()
-		#self.initUltraSonicSensors()
-		#self.initOrientationSensor()
+		self.initUltraSonicSensors()
+		self.initOrientationSensor()
 		#self.initIMUSensor()
 		# self.initCameraSensor()
 		
 		self.value = 0
 		print("Threads have been started")
-		#self.poll()
-		
-		pass
+		self.poll()
 
 	# TODO Set GPIO pins for Ultrasonic sensors
 	def initUltraSonicSensors(self):
@@ -52,25 +50,26 @@ class mainSensorAcquisition():
 	def poll(self):
 		# Collect data from all sensors
 		while(True):
-			print(self.value)
-			self.value += 1
 			# Create packet
 			dataPacket = {}
-			
-			print(time.time())
-			accel = self.OrientationThread.MPU.accel
-			gyro = self.OrientationThread.MPU.gyro
-			yaw = self.OrientationThread.Fusion.heading
-			pitch = self.OrientationThread.Fusion.pitch
-			roll = self.OrientationThread.Fusion.roll
-			front_dist = self.USonicThreadForward.distance
-			#left_wheel = self.leftWheelThread.data
+			#print("START")
+			#print(time.time())
+			dataPacket["accel"] = self.OrientationThread.MPU.accel
+			dataPacket["gyro"] = self.OrientationThread.MPU.gyro
+			dataPacket["yaw"] = self.OrientationThread.Fusion.heading
+			dataPacket["pitch"] = self.OrientationThread.Fusion.pitch
+			dataPacket["roll"] = self.OrientationThread.Fusion.roll
+			dataPacket["front_dist"] = self.USonicThreadForward.distance
+			dataPacket["left_wheel"] = self.leftWheelThread.data
 			
 			#self.testSched.enter(0.01, 1, self.poll, ())
 			#self.testSched.run()
 			# Format into protobuf
-			print(time.time())
-			time.sleep(2)
+			#print("END")
+			#print(time.time())
+			print(self.value)
+			self.value += 1
+			time.sleep(0.001)
 		# Transmit to laptop
 		
 	
