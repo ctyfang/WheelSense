@@ -1,7 +1,7 @@
 #Libraries
 import RPi.GPIO as GPIO
 import time, threading
- 
+import numpy as np
 
 class USSensor(threading.Thread):
 	TRIG = 27                                  #Associate pin 15 to TRIG
@@ -25,6 +25,7 @@ class USSensor(threading.Thread):
 		self.initialize()
 		while True:
 		 	self.getDistance()
+			time.sleep(0.01)
 	
 	def initialize(self):
 
@@ -34,32 +35,22 @@ class USSensor(threading.Thread):
 	    self.isInit = True
 
 	def getDistance(self):
-		TRIG = self.TRIG
-		ECHO = self.ECHO
-
-		GPIO.output(TRIG, True)                  #Set TRIG as HIGH
+		GPIO.output(self.TRIG, True)                  #Set TRIG as HIGH
 		time.sleep(0.00001)                      #Delay of 0.00001 seconds
-		GPIO.output(TRIG, False)                 #Set TRIG as LOW
+		GPIO.output(self.TRIG, False)                 #Set TRIG as LOW
 
-		while GPIO.input(ECHO)==0:               #Check if Echo is LOW
+		while GPIO.input(self.ECHO)==0:               #Check if Echo is LOW
 			pulse_start = time.time()              #Time of the last  LOW pulse
 
-		while GPIO.input(ECHO)==1:               #Check whether Echo is HIGH
+		while GPIO.input(self.ECHO)==1:               #Check whether Echo is HIGH
 			pulse_end = time.time()                #Time of the last HIGH pulse 
 
-		pulse_duration = pulse_end - pulse_start #pulse duration to a variable
-
-		distance = pulse_duration * 17150        #Calculate distance
-		distance = round(self.distance, 2)            #Round to two decimal points
+		distance = np.round((pulse_end-pulse_start)*1750, 2)            #Round to two decimal points
 
 		if distance > 20 and distance < 800:     #Is distance within range
 			#print "Distance:",distance - 0.5,"cm"  #Distance with calibration
 			self.distance = distance
-		else:
-			#print "Out Of Range"                   #display out of range
-			pass
  
-		return distance
 
 # if __name__ == '__main__':
 

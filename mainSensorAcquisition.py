@@ -13,15 +13,15 @@ import sched,time
 class mainSensorAcquisition():
 
 	def __init__(self):
-		#self.initWheelSensors()
-		self.initUltraSonicSensors()
-		self.initOrientationSensor()
+		self.initWheelSensors()
+		#self.initUltraSonicSensors()
+		#self.initOrientationSensor()
 		#self.initIMUSensor()
 		# self.initCameraSensor()
 		
 		self.value = 0
 		print("Threads have been started")
-		self.poll()
+		#self.poll()
 		
 		pass
 

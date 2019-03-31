@@ -5,6 +5,7 @@ import datetime
 import bluetooth, signal, sys
 from enum import Enum
 import time
+import numpy as np
 
 DATA_PATH = "test.csv"
 COLLECTION_TIME = 2
@@ -90,11 +91,22 @@ class WheelIMUThread(threading.Thread):
 		sys.exit(0)
 
 	def getIMUMsg(self):
-	 
+	 	print("Pre-receive")
+		print(time.time())
 		dataSizeArray = self.receive(4)
-		dataSize = struct.unpack("<L", dataSizeArray)[0]	
-	
+		print("Post-receive")
+		print(time.time())
+		#dataSize = struct.unpack("<L", dataSizeArray)[0]	
+		#print("Post unpack1")
+		#print(dataSize)
+		#print(time.time())
+		dataSize = np.ndarray((dataSizeArray,), "<L", dataSizeArray, 0, (100,))
+		print("Post-unpack2")
+		print(dataSize)
+		print(time.time())
 		_imuMsg.ParseFromString(data)
+		print("Post-parse")
+		print(time.time())
 		self.data = _imuMsg	
 		#print("Value: %f" %_imuMsg.acc_x)
 		#print("Msg from sensor " + _imuMsg.sensorID)
@@ -124,6 +136,8 @@ class IMUMsgThread(threading.Thread):
 	def run(self):
 
 		while (True):
+			print("Pre-fetch")
+			print(time.time())
 			try:
 				self.data = self.getIMUMsg()
 				self.msgsRecieved = self.msgsRecieved + 1
@@ -131,7 +145,8 @@ class IMUMsgThread(threading.Thread):
 			except:
 				#print("ERROR getting message")
 				pass				
-
+			print("Post-fetch")
+			print(time.time())
 
 			#time.sleep(0.050)
 			#print("Seconds passed = " + str((currentTime-startTime).seconds))
@@ -141,11 +156,20 @@ class IMUMsgThread(threading.Thread):
 
 	def getIMUMsg(self):
 	 #
-
+		print("Pre-receive")
+		print(time.time())
 		dataSizeArray = self.receive(4)
-		
+		print("Post-receive")
+		print(time.time())
 		# dataSizeArray = dataSizeArray[0:1]
 		dataSize = struct.unpack("<L", dataSizeArray)[0]
+		print("Post-unpack")
+		print(dataSize)
+		print(time.time())
+		dataSize = np.ndarray((1,), '<L', dataSizeArray, 0, (4,))
+		print("Post-unpack2")
+		print(dataSize)
+		print(time.time())
 		#print(dataSize)
 	 	if(dataSize < 100):
 
@@ -153,8 +177,11 @@ class IMUMsgThread(threading.Thread):
 
 			# Get incoming data.
 			_imuMsg = imuMsg.IMUInfo()
+			print("Post-info")
+			print(time.time())
 			_imuMsg.ParseFromString(data)
-
+			print("Post-parse")
+			print(time.time())
 			# Do things in real-time HERE ...
 
 			# Log data to a CSV
