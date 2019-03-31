@@ -90,29 +90,6 @@ class WheelIMUThread(threading.Thread):
 		self._serverRunning = False
 		sys.exit(0)
 
-	def getIMUMsg(self):
-	 	print("Pre-receive")
-		print(time.time())
-		dataSizeArray = self.receive(4)
-		print("Post-receive")
-		print(time.time())
-		#dataSize = struct.unpack("<L", dataSizeArray)[0]	
-		#print("Post unpack1")
-		#print(dataSize)
-		#print(time.time())
-		dataSize = np.ndarray((dataSizeArray,), "<L", dataSizeArray, 0, (100,))
-		print("Post-unpack2")
-		print(dataSize)
-		print(time.time())
-		_imuMsg.ParseFromString(data)
-		print("Post-parse")
-		print(time.time())
-		self.data = _imuMsg	
-		#print("Value: %f" %_imuMsg.acc_x)
-		#print("Msg from sensor " + _imuMsg.sensorID)
-
-		
-
 	def receive(self, MSGLEN):
 		chunks = []
 		bytes_recd = 0
@@ -155,33 +132,15 @@ class IMUMsgThread(threading.Thread):
 
 
 	def getIMUMsg(self):
-	 #
-		print("Pre-receive")
-		print(time.time())
 		dataSizeArray = self.receive(4)
-		print("Post-receive")
-		print(time.time())
-		# dataSizeArray = dataSizeArray[0:1]
-		#dataSize = struct.unpack("<L", dataSizeArray)[0]
-		#print("Post-unpack")
-		#print(dataSize)
-		#print(time.time())
 		dataSize = np.ndarray((1,), '<L', dataSizeArray, 0, (4,))
-		print("Post-unpack2")
-		#print(dataSize)
-		print(time.time())
-		#print(dataSize)
 	 	if(dataSize < 100):
 
 			data = self.receive(dataSize)
 
 			# Get incoming data.
 			_imuMsg = imuMsg.IMUInfo()
-			print("Post-info")
-			print(time.time())
 			_imuMsg.ParseFromString(data)
-			print("Post-parse")
-			print(time.time())
 			# Do things in real-time HERE ...
 
 			# Log data to a CSV
