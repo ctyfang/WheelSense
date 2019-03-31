@@ -162,13 +162,13 @@ class IMUMsgThread(threading.Thread):
 		print("Post-receive")
 		print(time.time())
 		# dataSizeArray = dataSizeArray[0:1]
-		dataSize = struct.unpack("<L", dataSizeArray)[0]
-		print("Post-unpack")
-		print(dataSize)
-		print(time.time())
+		#dataSize = struct.unpack("<L", dataSizeArray)[0]
+		#print("Post-unpack")
+		#print(dataSize)
+		#print(time.time())
 		dataSize = np.ndarray((1,), '<L', dataSizeArray, 0, (4,))
 		print("Post-unpack2")
-		print(dataSize)
+		#print(dataSize)
 		print(time.time())
 		#print(dataSize)
 	 	if(dataSize < 100):
@@ -202,19 +202,8 @@ class IMUMsgThread(threading.Thread):
 		bytes_recd = 0
 		while bytes_recd < MSGLEN:
 			# print("Waiting for msg")
-			chunk = self.clientsocket.recv(1)
-			# self.clientsocket.readsock(1)
-			# print str(chunk)
-			if chunk == '':
-
-				#raise RuntimeError("socket connection broken")
-				print("socket connection broken shutting down this thread")
-				self.shutDown()
-				return 0
-
-
-			chunks.append(chunk)
-			bytes_recd = bytes_recd + len(chunk)
+			chunks.append(self.clientsocket.recv(1))
+			bytes_recd = bytes_recd +  1
 		return ''.join(chunks)	
 
 	def shutDown(self):
